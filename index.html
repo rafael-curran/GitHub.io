@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Rafael Curran - Narrative Visualization</title>
+    <script src="https://cdn.jsdelivr.net/npm/d3@7"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/d3-annotation/2.5.1/d3-annotation.min.js" integrity="sha512-iBAeBWWWFb8HqSBcrqcz98iIpuVH1la39dEYHtyQ/pGpeCQTQVvLJOWAuhv2Q7JSHp9k7hWA7sGxU3hHJe+tFg==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <style>
+        .line {
+            fill: none;
+            stroke-width: 2px;
+        }
+        .axis--left .domain, .axis--right .domain {
+            display: none;
+        }
+        .tooltip {
+            display: none;
+            position: absolute;
+            background: white;
+            border: 1px solid #ccc;
+            padding: 5px;
+            pointer-events: none;
+        }
+        .scene, .text {
+            display: none;
+        }
+        .scene.active, .text.active {
+            display: block;
+        }
+        .sidebar {
+            position: fixed;
+            width: 200px;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            padding: 10px;
+            background-color: #f9f9f9;
+            border-right: 1px solid #ccc;
+        }
+        #sceneContainer {
+            margin-left: 220px; /* Ensure the charts appear in the same spot */
+            margin-right: 60px; /* Add margin to the right to avoid overlap with the arrow */
+        }
+        .arrow {
+            position: fixed;
+            right: 0;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 50px;
+            height: 50px; /* Ensure arrow stays the same size */
+            background-color: rgba(0, 0, 0, 0.1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        .arrow:hover {
+            background-color: rgba(0, 0, 0, 0.3);
+        }
+        .arrow:after {
+            content: '>';
+            font-size: 24px;
+            color: black;
+        }
+    </style>
+    <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+</head>
+<body>
+    <div class="sidebar">
+        <div id="text1" class="text active">
+            <p>Since 1970, with some exceptions, housing prices have consistently risen as mortgage interest rates have fallen. The recent dramatic increases in both mortgage rates and housing prices have led to what many are calling a housing affordability crisis.</p>
+        </div>
+        <div id="text2" class="text">
+            <p>
+                How have housing costs changed over time? Using the average 30-Year mortgage rate and median house sales price for a given month, you can get a sense of the typical mortgage cost of a newly purchased home (assuming a down payment of 20%).
+                \[
+                M = P \frac{r(1+r)^n}{(1+r)^n-1}
+                \]
+                where: \( M \) is the monthly payment, \( P \) is the loan amount (80% of the median house price), \( r \) is the monthly interest rate (annual rate divided by 12), \( n \) is the number of payments (30 years * 12 months).
+            </p>
+        </div>
+        <div id="text3" class="text">
+            <p>Measuring mortgage costs of newly purchased homes as a proportion of median family income gives an indication of how housing affordability has changed over the past 50 years. 28% is widely accepted as the standard for an affordable proportion of gross income which can be spent on mortgage.</p>
+        </div>
+    </div>
+    <div id="sceneContainer">
+        <div id="chart1" class="scene active"></div>
+        <div id="chart2" class="scene"></div>
+        <div id="chart3" class="scene"></div>
+    </div>
+    <div id="tooltip" class="tooltip"></div>
+    <div class="arrow" id="next"></div>
+    <script src="script.js"></script>
+</body>
+</html>
