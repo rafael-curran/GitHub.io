@@ -14,7 +14,6 @@ const linePrice = d3.line().x(d => x(d.DATE)).y(d => y1(d.MSPUS));
 const lineMortgageCost = d3.line().x(d => x(d.DATE)).y(d => y2(d.MONTHLYCOST));
 const lineMortgageCostPercentage = d3.line().x(d => x(d.DATE)).y(d => y3(d.MORTGAGECOSTPERCENTAGE));
 
-// State variables
 let currentScene = 0;
 let data = {
     mortgageData: [],
@@ -136,10 +135,10 @@ const scenes = [
             }
 
             const g = d3.select(this.id).select("svg g");
-            g.selectAll("*").remove();  // Clear previous content
+            g.selectAll("*").remove();  
 
             console.log("Initializing Scene 1...");
-            // Load data and create the first chart
+            
             if (data.mortgageData.length === 0 || data.priceData.length === 0) {
                 Promise.all([
                     d3.csv("30YearMortgageAverage.csv", d => ({DATE: parseTime(d.DATE), MORTGAGE30US: +d.MORTGAGE30US / 100})),
@@ -167,10 +166,10 @@ const scenes = [
             }
 
             const g = d3.select(this.id).select("svg g");
-            g.selectAll("*").remove();  // Clear previous content
+            g.selectAll("*").remove(); 
 
             console.log("Initializing Scene 2...");
-            // Load data and create the second chart
+            
             if (data.mortgageData.length === 0 || data.priceData.length === 0) {
                 Promise.all([
                     d3.csv("30YearMortgageAverage.csv", d => ({DATE: parseTime(d.DATE), MORTGAGE30US: +d.MORTGAGE30US / 100})),
@@ -198,10 +197,10 @@ const scenes = [
             }
 
             const g = d3.select(this.id).select("svg g");
-            g.selectAll("*").remove();  // Clear previous content
+            g.selectAll("*").remove(); 
 
             console.log("Initializing Scene 3...");
-            // Load data and create the third chart
+            
             if (data.mortgageData.length === 0 || data.priceData.length === 0 || data.mortgageCostData.length === 0 || typeof data.incomeData === 'undefined') {
                 Promise.all([
                     d3.csv("30YearMortgageAverage.csv", d => ({DATE: parseTime(d.DATE), MORTGAGE30US: +d.MORTGAGE30US / 100})),
@@ -289,7 +288,6 @@ function initializeScene1(g) {
         .style("font-size", "16px")
         .text("Median Sales Price of Houses Sold");
 
-    // Add final value labels
     g.append("text")
         .attr("transform", "translate(" + (width + margin.right/2 + 10) + "," + y0(data.mortgageData[data.mortgageData.length - 1].MORTGAGE30US) + ")")
         .attr("dy", ".35em")
@@ -306,7 +304,7 @@ function initializeScene1(g) {
         .style("font-size", "12px")
         .text("$" + formatComma(data.priceData[data.priceData.length - 1].MSPUS));
 
-         // Add annotations
+        
     const minMortgageRate = d3.min(data.mortgageData, d => d.MORTGAGE30US);
     const maxMortgageRate = d3.max(data.mortgageData, d => d.MORTGAGE30US);
     const minMortgageData = data.mortgageData.find(d => d.MORTGAGE30US === minMortgageRate);
@@ -421,7 +419,7 @@ function initializeScene2(g) {
         .style("font-size", "16px")
         .text("Monthly Cost of Median Mortgage");
 
-    const formatComma = d3.format(",.0f");  // Define formatComma
+    const formatComma = d3.format(",.0f");  
     g.append("text")
         .attr("transform", "translate(" + (width + margin.right / 2 + 10) + "," + y2(data.mortgageCostData[data.mortgageCostData.length - 1].MONTHLYCOST) + ")")
         .attr("dy", ".35em")
@@ -434,22 +432,14 @@ function initializeScene2(g) {
             const years = (endDate - startDate) / (1000 * 60 * 60 * 24 * 365.25);
             return ((endValue / startValue) ** (1 / years) - 1) * 100;
         };
-        // Calculate annotations points
-    const firstDataPoint = data.mortgageCostData[0];
-    const lastDataPoint2020 = data.mortgageCostData.filter(d => d.DATE.getFullYear() === 2020).pop();
-    const lastDataPoint = data.mortgageCostData[data.mortgageCostData.length - 1];
+
+        const firstDataPoint = data.mortgageCostData[0];
+        const lastDataPoint2020 = data.mortgageCostData.filter(d => d.DATE.getFullYear() === 2020).pop();
+        const lastDataPoint = data.mortgageCostData[data.mortgageCostData.length - 1];
         const cagr1970To2020 = calculateCAGR(firstDataPoint.MONTHLYCOST, lastDataPoint2020.MONTHLYCOST, firstDataPoint.DATE, lastDataPoint2020.DATE);
         const cagr2020ToNow = calculateCAGR(lastDataPoint2020.MONTHLYCOST, lastDataPoint.MONTHLYCOST, lastDataPoint2020.DATE, lastDataPoint.DATE);
     
         const annotations = [
-            // {
-            //     note: { label: "CAGR 1970-2020", title: cagr1970To2020.toFixed(2) + "%" },
-            //     x: x(firstDataPoint.DATE),
-            //     y: y1(firstDataPoint.MONTHLYCOST),
-            //     dy: 30,
-            //     dx: -30,
-            //     color: "green"
-            // },
             {
                 note: { label: "CAGR 1970-2020", title: cagr1970To2020.toFixed(2) + "%" },
                 x: x(lastDataPoint2020.DATE),
@@ -571,8 +561,6 @@ function initializeScene3(g) {
         .style("font-size", "16px")
         .text("Mortgage Cost as a % of Median Family Income");
         
-
-    // Add final value labels
     g.append("text")
         .attr("transform", "translate(" + (width + margin.right / 2 + 10) + "," + y3(data.mortgageCostPercentageData[data.mortgageCostPercentageData.length - 1].MORTGAGECOSTPERCENTAGE) + ")")
         .attr("dy", ".35em")
@@ -580,7 +568,7 @@ function initializeScene3(g) {
         .style("fill", "purple")
         .style("font-size", "12px")
         .text((data.mortgageCostPercentageData[data.mortgageCostPercentageData.length - 1].MORTGAGECOSTPERCENTAGE * 100).toFixed(2) + "%");
-    // Add a thin dashed gray horizontal line at 28%
+
     g.append("line")
         .attr("x1", 0)
         .attr("y1", y3(0.28))
@@ -649,6 +637,4 @@ d3.select("#next").on("click", () => {
 });
 
 
-
-// Initialize the first scene
 showScene(0);
