@@ -22,6 +22,9 @@ let data = {
     mortgageCostPercentageData: []
 };
 
+const brushHeight = 50; 
+
+
 const tooltip = d3.select("body").append("div")
     .attr("class", "tooltip")
     .style("position", "absolute")
@@ -195,10 +198,10 @@ const scenes = [
                     .append("g")
                     .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
             }
-
+    
             const g = d3.select(this.id).select("svg g");
             g.selectAll("*").remove(); 
-
+    
             console.log("Initializing Scene 3...");
             
             if (data.mortgageData.length === 0 || data.priceData.length === 0 || data.mortgageCostData.length === 0 || typeof data.incomeData === 'undefined') {
@@ -227,7 +230,7 @@ function initializeScene1(g) {
 
     const pathMortgage = g.append("path")
         .data([data.mortgageData])
-        .attr("class", "line")
+        .attr("class", "line mortgage-line")
         .attr("d", lineMortgage)
         .attr("stroke", "blue")
         .attr("fill", "none");
@@ -244,7 +247,7 @@ function initializeScene1(g) {
 
     const pathPrice = g.append("path")
         .data([data.priceData])
-        .attr("class", "line")
+        .attr("class", "line price-line")
         .attr("d", linePrice)
         .attr("stroke", "green")
         .attr("fill", "none");
@@ -259,21 +262,21 @@ function initializeScene1(g) {
         .ease(d3.easeLinear)
         .attr("stroke-dashoffset", 0);
 
-    g.append("g")
+    const xAxisG = g.append("g")
         .attr("transform", "translate(0," + height + ")")
         .call(d3.axisBottom(x));
 
-    g.append("g")
+    const yAxisLeftG = g.append("g")
         .attr("class", "axis axis--left")
         .call(d3.axisLeft(y0).ticks(6).tickFormat(d3.format(".0%")));
-    
-    g.append("g")
+
+    const yAxisRightG = g.append("g")
         .attr("class", "axis axis--right")
         .attr("transform", "translate(" + width + " ,0)")
         .call(d3.axisRight(y1).ticks(6).tickFormat(d3.format("$,.0f")));
-    
+
     g.append("text")
-        .attr("transform", "translate(" + (-margin.left/2 + 65) + "," + y0(data.mortgageData[0].MORTGAGE30US) + ")")
+        .attr("transform", "translate(" + (-margin.left / 2 + 65) + "," + y0(data.mortgageData[0].MORTGAGE30US) + ")")
         .attr("dy", ".35em")
         .attr("text-anchor", "start")
         .style("fill", "blue")
@@ -281,7 +284,7 @@ function initializeScene1(g) {
         .text("30 Year Mortgage Rate Avg.");
 
     g.append("text")
-        .attr("transform", "translate(" + (-margin.left/2 + 50) + "," + y1(data.priceData[0].MSPUS-30) + ")")
+        .attr("transform", "translate(" + (-margin.left / 2 + 50) + "," + y1(data.priceData[0].MSPUS - 30) + ")")
         .attr("dy", ".35em")
         .attr("text-anchor", "start")
         .style("fill", "green")
@@ -289,22 +292,21 @@ function initializeScene1(g) {
         .text("Median Sales Price of Houses Sold");
 
     g.append("text")
-        .attr("transform", "translate(" + (width + margin.right/2 + 10) + "," + y0(data.mortgageData[data.mortgageData.length - 1].MORTGAGE30US) + ")")
+        .attr("transform", "translate(" + (width + margin.right / 2 + 10) + "," + y0(data.mortgageData[data.mortgageData.length - 1].MORTGAGE30US) + ")")
         .attr("dy", ".35em")
         .attr("text-anchor", "end")
         .style("fill", "blue")
         .style("font-size", "12px")
         .text((data.mortgageData[data.mortgageData.length - 1].MORTGAGE30US * 100).toFixed(2) + "%");
-    
+
     g.append("text")
-        .attr("transform", "translate(" + (width + margin.right/2 + 15) + "," + y1(data.priceData[data.priceData.length - 1].MSPUS) + ")")
+        .attr("transform", "translate(" + (width + margin.right / 2 + 15) + "," + y1(data.priceData[data.priceData.length - 1].MSPUS) + ")")
         .attr("dy", ".35em")
         .attr("text-anchor", "end")
         .style("fill", "green")
         .style("font-size", "12px")
         .text("$" + formatComma(data.priceData[data.priceData.length - 1].MSPUS));
 
-        
     const minMortgageRate = d3.min(data.mortgageData, d => d.MORTGAGE30US);
     const maxMortgageRate = d3.max(data.mortgageData, d => d.MORTGAGE30US);
     const minMortgageData = data.mortgageData.find(d => d.MORTGAGE30US === minMortgageRate);
@@ -335,7 +337,94 @@ function initializeScene1(g) {
     g.append("g")
         .attr("class", "annotation-group")
         .call(makeAnnotations);
-        
+
+    const brushSvg = d3.select("#brush-area1").append("svg")
+        .attr("width", width + margin.left + margin.right)
+        .attr("height", brushHeight + margin.top + margin.bottom)
+        .append("g")
+        .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+    const brushX = d3.scaleTime()
+        .domain(x.domain())
+        .range([0, width]);
+
+    const brushY = d3.scaleLinear()
+        .domain(y0.domain())
+        .range([brushHeight, 0]);
+
+    brushSvg.append("g")
+        .attr("transform", "translate(0," + brushHeight + ")")
+        .call(d3.axisBottom(brushX));
+
+    brushSvg.append("path")
+        .datum(data.mortgageData)
+        .attr("class", "line")
+        .attr("d", d3.line()
+            .x(d => brushX(d.DATE))
+            .y(d => brushY(d.MORTGAGE30US))
+        )
+        .attr("stroke", "blue")
+        .attr("fill", "none");
+
+    const brush = d3.brushX()
+        .extent([[0, 0], [width, brushHeight]])
+        .on("brush end", brushed);
+
+    const defaultSelection = [brushX.range()[0], brushX.range()[1]];
+
+    const gb = brushSvg.append("g")
+        .attr("class", "brush")
+        .call(brush)
+        .call(brush.move, defaultSelection);
+
+    function brushed(event) {
+        if (event.selection) {
+            const [x0, x1] = event.selection.map(brushX.invert);
+            x.domain([x0, x1]);
+            updateScene1();
+        }
+    }
+
+    function updateScene1() {
+        const filteredMortgageData = data.mortgageData.filter(d => d.DATE >= x.domain()[0] && d.DATE <= x.domain()[1]);
+        const filteredPriceData = data.priceData.filter(d => d.DATE >= x.domain()[0] && d.DATE <= x.domain()[1]);
+
+        g.select(".mortgage-line")
+            .datum(filteredMortgageData)
+            .attr("d", lineMortgage);
+
+        g.select(".price-line")
+            .datum(filteredPriceData)
+            .attr("d", linePrice);
+
+        xAxisG.call(d3.axisBottom(x));
+
+        const newAnnotations = [
+            {
+                note: { label: d3.timeFormat("%d-%b-%y")(minMortgageData.DATE), title: (minMortgageRate * 100).toFixed(2) + "%" },
+                x: x(minMortgageData.DATE),
+                y: y0(minMortgageRate),
+                dy: 20,
+                dx: -20,
+                color: "gray"
+            },
+            {
+                note: { label: d3.timeFormat("%d-%b-%y")(maxMortgageData.DATE), title: (maxMortgageRate * 100).toFixed(2) + "%" },
+                x: x(maxMortgageData.DATE),
+                y: y0(maxMortgageRate),
+                dy: 30,
+                dx: -30,
+                color: "gray"
+            }
+        ];
+
+        const newMakeAnnotations = d3.annotation()
+            .annotations(newAnnotations);
+
+        g.select(".annotation-group")
+            .call(newMakeAnnotations);
+    }
+
     g.append("rect")
         .attr("class", "overlay")
         .attr("width", width)
@@ -364,6 +453,7 @@ function initializeScene1(g) {
             g.selectAll(".mspus").remove();
         });
 }
+
 
 
 function initializeScene2(g) {
@@ -403,11 +493,11 @@ function initializeScene2(g) {
         .ease(d3.easeLinear)
         .attr("stroke-dashoffset", 0);
 
-    g.append("g")
+    const xAxisG = g.append("g")
         .attr("transform", "translate(0," + height + ")")
         .call(d3.axisBottom(x));
 
-    g.append("g")
+    const yAxisG = g.append("g")
         .attr("class", "axis axis--left")
         .call(d3.axisLeft(y2).ticks(6).tickFormat(d3.format("$,.0f")));
 
@@ -427,19 +517,101 @@ function initializeScene2(g) {
         .style("fill", "red")
         .style("font-size", "12px")
         .text("$" + formatComma(data.mortgageCostData[data.mortgageCostData.length - 1].MONTHLYCOST));
-    
-        const calculateCAGR = (startValue, endValue, startDate, endDate) => {
-            const years = (endDate - startDate) / (1000 * 60 * 60 * 24 * 365.25);
-            return ((endValue / startValue) ** (1 / years) - 1) * 100;
-        };
 
-        const firstDataPoint = data.mortgageCostData[0];
-        const lastDataPoint2020 = data.mortgageCostData.filter(d => d.DATE.getFullYear() === 2020).pop();
-        const lastDataPoint = data.mortgageCostData[data.mortgageCostData.length - 1];
-        const cagr1970To2020 = calculateCAGR(firstDataPoint.MONTHLYCOST, lastDataPoint2020.MONTHLYCOST, firstDataPoint.DATE, lastDataPoint2020.DATE);
-        const cagr2020ToNow = calculateCAGR(lastDataPoint2020.MONTHLYCOST, lastDataPoint.MONTHLYCOST, lastDataPoint2020.DATE, lastDataPoint.DATE);
-    
-        const annotations = [
+    const calculateCAGR = (startValue, endValue, startDate, endDate) => {
+        const years = (endDate - startDate) / (1000 * 60 * 60 * 24 * 365.25);
+        return ((endValue / startValue) ** (1 / years) - 1) * 100;
+    };
+
+    const firstDataPoint = data.mortgageCostData[0];
+    const lastDataPoint2020 = data.mortgageCostData.filter(d => d.DATE.getFullYear() === 2020).pop();
+    const lastDataPoint = data.mortgageCostData[data.mortgageCostData.length - 1];
+    const cagr1970To2020 = calculateCAGR(firstDataPoint.MONTHLYCOST, lastDataPoint2020.MONTHLYCOST, firstDataPoint.DATE, lastDataPoint2020.DATE);
+    const cagr2020ToNow = calculateCAGR(lastDataPoint2020.MONTHLYCOST, lastDataPoint.MONTHLYCOST, lastDataPoint2020.DATE, lastDataPoint.DATE);
+
+    const annotations = [
+        {
+            note: { label: "CAGR 1970-2020", title: cagr1970To2020.toFixed(2) + "%" },
+            x: x(lastDataPoint2020.DATE),
+            y: y2(lastDataPoint2020.MONTHLYCOST),
+            dy: 50,
+            dx: -20,
+            color: "gray"
+        },
+        {
+            note: { label: "CAGR 2020-now", title: cagr2020ToNow.toFixed(2) + "%" },
+            x: x(lastDataPoint.DATE),
+            y: y2(lastDataPoint.MONTHLYCOST),
+            dy: 30,
+            dx: -35,
+            color: "gray"
+        }
+    ];
+
+    const makeAnnotations = d3.annotation()
+        .annotations(annotations);
+
+    g.append("g")
+        .attr("class", "annotation-group")
+        .call(makeAnnotations);
+
+    const brushSvg = d3.select("#brush-area2").append("svg")
+        .attr("width", width + margin.left + margin.right)
+        .attr("height", brushHeight + margin.top + margin.bottom)
+        .append("g")
+        .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+    const brushX = d3.scaleTime()
+        .domain(x.domain())
+        .range([0, width]);
+
+    const brushY = d3.scaleLinear()
+        .domain(y2.domain())
+        .range([brushHeight, 0]);
+
+    brushSvg.append("g")
+        .attr("transform", "translate(0," + brushHeight + ")")
+        .call(d3.axisBottom(brushX));
+
+    brushSvg.append("path")
+        .datum(mortgageCostData)
+        .attr("class", "line")
+        .attr("d", d3.line()
+            .x(d => brushX(d.DATE))
+            .y(d => brushY(d.MONTHLYCOST))
+        )
+        .attr("stroke", "red")
+        .attr("fill", "none");
+
+    const brush = d3.brushX()
+        .extent([[0, 0], [width, brushHeight]])
+        .on("brush end", brushed);
+
+    const defaultSelection = [brushX.range()[0], brushX.range()[1]];
+
+    const gb = brushSvg.append("g")
+        .attr("class", "brush")
+        .call(brush)
+        .call(brush.move, defaultSelection);
+
+    function brushed(event) {
+        if (event.selection) {
+            const [x0, x1] = event.selection.map(brushX.invert);
+            x.domain([x0, x1]);
+            updateScene2();
+        }
+    }
+
+    function updateScene2() {
+        const filteredData = mortgageCostData.filter(d => d.DATE >= x.domain()[0] && d.DATE <= x.domain()[1]);
+
+        g.select(".line")
+            .datum(filteredData)
+            .attr("d", lineMortgageCost);
+
+        xAxisG.call(d3.axisBottom(x));
+
+        const newAnnotations = [
             {
                 note: { label: "CAGR 1970-2020", title: cagr1970To2020.toFixed(2) + "%" },
                 x: x(lastDataPoint2020.DATE),
@@ -457,13 +629,13 @@ function initializeScene2(g) {
                 color: "gray"
             }
         ];
-    
-        const makeAnnotations = d3.annotation()
-            .annotations(annotations);
-    
-        g.append("g")
-            .attr("class", "annotation-group")
-            .call(makeAnnotations);
+
+        const newMakeAnnotations = d3.annotation()
+            .annotations(newAnnotations);
+
+        g.select(".annotation-group")
+            .call(newMakeAnnotations);
+    }
 
     g.append("rect")
         .attr("class", "overlay")
@@ -494,6 +666,8 @@ function initializeScene2(g) {
             g.selectAll(".monthlycost").remove();
         });
 }
+
+
 
 
 function initializeScene3(g) {
@@ -545,16 +719,16 @@ function initializeScene3(g) {
         .ease(d3.easeLinear)
         .attr("stroke-dashoffset", 0);
 
-    g.append("g")
+    const xAxisG = g.append("g")
         .attr("transform", "translate(0," + height + ")")
         .call(d3.axisBottom(x));
 
-    g.append("g")
+    const yAxisG = g.append("g")
         .attr("class", "axis axis--left")
         .call(d3.axisLeft(y3).ticks(6).tickFormat(d3.format(".0%")));
     
     g.append("text")
-        .attr("transform", "translate(" + (-margin.left/2 + 70) + "," + y3(data.mortgageCostPercentageData[0].MORTGAGECOSTPERCENTAGE)  + ")")
+        .attr("transform", "translate(" + (-margin.left / 2 + 70) + "," + y3(data.mortgageCostPercentageData[0].MORTGAGECOSTPERCENTAGE)  + ")")
         .attr("dy", ".35em")
         .attr("text-anchor", "start")
         .style("fill", "purple")
@@ -578,23 +752,80 @@ function initializeScene3(g) {
         .attr("stroke-width", 1)
         .attr("stroke-dasharray", "4,4");
     
-        const annotation = [
-            {
-                note: { label: "Affordable Level", title: "28%" },
-                x: width - margin.right,
-                y: y3(0.28),
-                dy: -30,
-                dx: -30,
-                color: "gray"
-            }
-        ];
-    
-        const makeAnnotation = d3.annotation()
-            .annotations(annotation);
-    
-        g.append("g")
-            .attr("class", "annotation-group")
-            .call(makeAnnotation);
+    const annotation = [
+        {
+            note: { label: "Affordable Level", title: "28%" },
+            x: width - margin.right,
+            y: y3(0.28),
+            dy: -30,
+            dx: -30,
+            color: "gray"
+        }
+    ];
+
+    const makeAnnotation = d3.annotation()
+        .annotations(annotation);
+
+    g.append("g")
+        .attr("class", "annotation-group")
+        .call(makeAnnotation);
+
+    const brushSvg = d3.select("#brush-area3").append("svg")
+        .attr("width", width + margin.left + margin.right)
+        .attr("height", brushHeight + margin.top + margin.bottom)
+        .append("g")
+        .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+    const brushX = d3.scaleTime()
+        .domain(x.domain())
+        .range([0, width]);
+
+    const brushY = d3.scaleLinear()
+        .domain(y3.domain())
+        .range([brushHeight, 0]);
+
+    brushSvg.append("g")
+        .attr("transform", "translate(0," + brushHeight + ")")
+        .call(d3.axisBottom(brushX));
+
+    brushSvg.append("path")
+        .datum(mortgageCostPercentageData)
+        .attr("class", "line")
+        .attr("d", d3.line()
+            .x(d => brushX(d.DATE))
+            .y(d => brushY(d.MORTGAGECOSTPERCENTAGE))
+        )
+        .attr("stroke", "purple")
+        .attr("fill", "none");
+
+    const brush = d3.brushX()
+        .extent([[0, 0], [width, brushHeight]])
+        .on("brush end", brushed);
+
+    const defaultSelection = [brushX.range()[0], brushX.range()[1]];
+
+    const gb = brushSvg.append("g")
+        .attr("class", "brush")
+        .call(brush)
+        .call(brush.move, defaultSelection);
+
+    function brushed(event) {
+        if (event.selection) {
+            const [x0, x1] = event.selection.map(brushX.invert);
+            x.domain([x0, x1]);
+            updateScene3();
+        }
+    }
+
+    function updateScene3() {
+        const filteredData = mortgageCostPercentageData.filter(d => d.DATE >= x.domain()[0] && d.DATE <= x.domain()[1]);
+
+        g.select(".line")
+            .datum(filteredData)
+            .attr("d", lineMortgageCostPercentage);
+
+        xAxisG.call(d3.axisBottom(x));
+    }
 
     g.append("rect")
         .attr("class", "overlay")
@@ -620,10 +851,16 @@ function initializeScene3(g) {
         });
 }
 
+
+
+
+
 function showScene(index) {
     d3.selectAll(".scene").classed("active", false);
     d3.selectAll(".text").classed("active", false);
-    
+
+    d3.selectAll(".brush-area").html('');
+
     const scene = scenes[index];
     d3.select(scene.id).classed("active", true);
     d3.select(`#text${index + 1}`).classed("active", true);
@@ -636,5 +873,5 @@ d3.select("#next").on("click", () => {
     showScene(currentScene);
 });
 
-
 showScene(0);
+
